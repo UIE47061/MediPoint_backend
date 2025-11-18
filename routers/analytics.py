@@ -7,19 +7,17 @@ from db.mongo import db
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
-# ======== 這邊的欄位名稱請你依照實際 Mongo 欄位調整 ========
-DATE_FIELD = "date"          # 銷售日期欄位，例如 "2025-10-01"
+DATE_FIELD = "date"  
 STORE_FIELD = "store_id"
 SKU_FIELD = "sku_id"
-QTY_FIELD = "qty"            # 銷售數量
-AMOUNT_FIELD = "amount"      # 銷售金額
-CATEGORY_FIELD = "category"  # 商品分類
-NAME_FIELD = "name"          # 商品名稱，如果有
+QTY_FIELD = "qty"    
+AMOUNT_FIELD = "amount"   
+CATEGORY_FIELD = "category"
+NAME_FIELD = "name"        
 
 # inventory 欄位
 STOCK_FIELD = "stock_on_hand"
 SALES_7D_FIELD = "sales_7d"
-# ============================================================
 
 
 def _date_str_to_range(date_str: str):
