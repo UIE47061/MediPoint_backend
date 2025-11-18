@@ -12,6 +12,7 @@ from routers.analytics import (
     low_stock,
     spike_products,
 )
+from util.gemini import ai_summary_daily
 
 router = APIRouter(prefix="/report", tags=["report"])
 
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/report", tags=["report"])
 def daily_report(
     date: str = Query(..., description="YYYY-MM-DD"),
     store_id: Optional[str] = None,
+    with_ai: bool = True,
 ):
     """
     一頁式商情報表：
@@ -28,8 +30,9 @@ def daily_report(
     - Top categories
     - Low stock
     - Spike products
+    - (選配) AI summary
     """
-
+    # 直接呼叫 analytics 裡的函式
     kpi = kpi_daily(date=date, store_id=store_id)
     tops = top_products(date=date, store_id=store_id, limit=10)
     cats = top_categories(date=date, limit=10)
@@ -48,4 +51,9 @@ def daily_report(
         "low_stock": low,
         "spike_products": spikes,
     }
+
+    if with_ai:
+        summary_text = ai_summary_daily(report)
+        report["ai_summary"] = summary_text
+
     return report
