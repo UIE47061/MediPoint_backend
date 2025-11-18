@@ -7,14 +7,13 @@ from fastapi.openapi.utils import get_openapi
 from util.config import Env  # 確保環境變數被載入
 import secrets
 
-# import router.attractions as attraction_router
-# from router import(
-#     attractions as attraction_router, 
-#     itineraries as itinerary_router,
-#     chat as chat_router,
-#     favorites as favorites_router
-# )
-# from router import advertisements as advertisement_router
+from routers import (
+    sales, 
+    inventory, 
+    summary, 
+    category, 
+    insight
+)
 
 # 初始化 HTTPBasic 認證
 security = HTTPBasic()
@@ -85,7 +84,11 @@ def health_check():
     return {"status": "ok"}
 
 # 註冊路由
-# app.include_router(advertisement_router.router)
+app.include_router(sales.router)
+app.include_router(inventory.router)
+app.include_router(summary.router)
+app.include_router(category.router)
+app.include_router(insight.router)
 
 # FastAPI 初始化
 if __name__ == '__main__':
