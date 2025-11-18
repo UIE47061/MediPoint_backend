@@ -10,5 +10,10 @@ from util.config import env
 
 MONGO_URI = env.MongoDB_URL
 
-client = MongoClient(env.MongoDB_URL, tlsCAFile=certifi.where())
+client = MongoClient(
+    MONGO_URI,
+    tls=True,
+    tlsAllowInvalidCertificates=True,
+)
+
 db = client["medipoint"]
