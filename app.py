@@ -12,7 +12,9 @@ from routers import (
     inventory, 
     summary, 
     category, 
-    insight
+    insight,
+    analytics,
+    report
 )
 
 # 初始化 HTTPBasic 認證
@@ -89,6 +91,8 @@ app.include_router(inventory.router)
 app.include_router(summary.router)
 app.include_router(category.router)
 app.include_router(insight.router)
+app.include_router(analytics.router)
+app.include_router(report.router)
 
 # FastAPI 初始化
 if __name__ == '__main__':

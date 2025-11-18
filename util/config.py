@@ -9,7 +9,6 @@ class Env:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     DOCS_PASSWORD: str = os.getenv("DOCS_PASSWORD", "")
     DOCS_USERNAME: str = os.getenv("DOCS_USERNAME", "")
-    MongoDB_KEY: str = os.getenv("MongoDB_KEY", "")
     MongoDB_URL: str = os.getenv("MongoDB_URL", "")
     HUGGINGFACE_TOKEN: str = os.getenv("HUGGINGFACE_TOKEN", "")
     RELOAD: bool = os.getenv("RELOAD", "").lower() == "true"
