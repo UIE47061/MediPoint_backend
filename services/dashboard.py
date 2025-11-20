@@ -162,14 +162,15 @@ def get_weekly_dashboard_data():
                 "board": art.get("board", "General"),
                 "title": title,
                 "content": art.get("content", "")[:60] + "...", # 只取摘要
+                "url": art.get("url", "#"), # <--- 關鍵修正：加上 URL 欄位
                 "intent": "Ask" if "?" in title else "Complain",
                 "tags": tags
             })
     else:
         # 若沒資料顯示預設
         insights = [
-            {"source": "PTT", "board": "BabyMother", "title": "(範例) 小孩半夜發燒買不到藥怎麼辦？", "content": "跑了兩家藥局都說退燒藥缺貨...", "intent": "Out_of_Stock", "tags": ["缺貨", "兒童"]},
-            {"source": "Dcard", "board": "Health", "title": "(範例) 最近流感是不是很強？", "content": "吞口水像刀割一樣...", "intent": "Ask", "tags": ["流感", "推薦"]}
+            {"source": "PTT", "board": "BabyMother", "title": "(範例) 小孩半夜發燒買不到藥怎麼辦？", "content": "跑了兩家藥局都說退燒藥缺貨...", "url": "#", "intent": "Out_of_Stock", "tags": ["缺貨", "兒童"]},
+            {"source": "Dcard", "board": "Health", "title": "(範例) 最近流感是不是很強？", "content": "吞口水像刀割一樣...", "url": "#", "intent": "Ask", "tags": ["流感", "推薦"]}
         ]
 
     return {
