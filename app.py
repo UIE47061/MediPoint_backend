@@ -1,28 +1,20 @@
-
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from fastapi.openapi.utils import get_openapi
-from util.config import Env  # 確保環境變數被載入
+from util.config import Env
 import secrets
 
-from routers import (
-    sales, 
-    inventory, 
-    summary, 
-    category, 
-    insight,
-    analytics,
-    report
-)
+# 引入 Routers
+from routers import dashboard, crawler
 
 # 初始化 HTTPBasic 認證
 security = HTTPBasic()
 
 app = FastAPI(
     title="MediPoint API",
-    description="[MediPoint] - API docs",
+    description="[MediPoint] - ERP 智慧商情系統 API",
     docs_url=None,
     redoc_url=None,
     openapi_url=None
@@ -59,17 +51,17 @@ async def get_swagger_documentation(credentials: HTTPBasicCredentials = Depends(
 async def get_redoc_documentation(credentials: HTTPBasicCredentials = Depends(verify_credentials)):
     return get_redoc_html(openapi_url="/openapi.json", title="MediPoint API")
 
-# 針對 Hugging Face Spaces 的 CORS 設定
+# CORS 設定
 origins = [
     "http://localhost:5173",
-    "https://uie47061.github.io/MediPoint/",
+    "http://127.0.0.1:5173",
+    "https://uie47061.github.io",
     "https://huggingface.co",
-    "https://*.hf.space",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins, # 允許所有來源，方便開發，正式環境建議設限
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -78,24 +70,18 @@ app.add_middleware(
 @app.get("/")
 def root():
     """根路由"""
-    return {"message": "Welcome to MediPoint API!"}
+    return {"message": "Welcome to MediPoint API!", "status": "running"}
 
 @app.get("/health")
 def health_check():
-    """健康檢查，喚醒 API 用"""
+    """健康檢查"""
     return {"status": "ok"}
 
 # 註冊路由
-app.include_router(sales.router)
-app.include_router(inventory.router)
-app.include_router(summary.router)
-app.include_router(category.router)
-app.include_router(insight.router)
-app.include_router(analytics.router)
-app.include_router(report.router)
+app.include_router(dashboard.router)
+app.include_router(crawler.router)
 
-# FastAPI 初始化
 if __name__ == '__main__':
     import uvicorn
-    uvicorn.run("app:app", host='0.0.0.0', port=Env.PORT, reload=Env.RELOAD)
+    uvicorn.run("app:app", host='0.0.0.0', port=Env.PORT, reload=True)
     # uvicorn app:app --port 7860 --reload

@@ -13,10 +13,10 @@ MONGO_URI = env.MongoDB_URL
 
 client = MongoClient(
     MONGO_URI,
-    server_api=ServerApi("1"),          # 使用 Server API v1（Atlas 官方建議）
-    tls=True,                           # 明確啟用 TLS
-    tlsCAFile=certifi.where(),          # 使用 certifi 的根憑證
-    tlsAllowInvalidCertificates=True,   # ⚠ Demo 用：放寬憑證驗證
+    server_api=ServerApi("1"),
+    tls=True,
+    tlsCAFile=certifi.where(),
+    tlsAllowInvalidCertificates=True,
 )
 
 db = client["medipoint"]
