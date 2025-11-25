@@ -2,7 +2,6 @@ from db.mongo import db
 from util.gemini import generate_talking_point
 from datetime import datetime
 
-# 固定查詢日期 (Demo 用，為了配合 CSV 的資料時間點)
 TARGET_DATE = "2025-10-30"
 STORE_ID = "S001"
 
@@ -28,10 +27,8 @@ def get_weekly_dashboard_data():
     if kpi_result:
         revenue = kpi_result[0]['total_revenue']
         gp = kpi_result[0]['total_gp']
-        # 防止除以零
         margin = round((gp / revenue) * 100, 1) if revenue > 0 else 0
     else:
-        # Fallback (若資料庫尚未寫入該日期數據，提供預設值以免畫面壞掉)
         revenue = 42296
         gp = 4148
         margin = 9.8
@@ -43,14 +40,13 @@ def get_weekly_dashboard_data():
         "coverage_progress": 85,
         "gross_profit": f"{int(gp):,}",
         "margin_rate": f"{margin}%",
-        "margin_status": "low" if margin < 15 else "high", # 邏輯判斷：低於 15% 視為低毛利
+        "margin_status": "low" if margin < 15 else "high",
         "top_category": "保健藥品"
     }
 
     # ==========================================
-    # 2. 取得法規警示 (從 alerts collection 撈取真實資料)
+    # 2. 取得法規警示
     # ==========================================
-    # 抓最新的 5 筆，按爬取時間倒序
     alert_cursor = db.alerts.find().sort("crawled_at", -1).limit(5)
     alerts = []
     
@@ -62,7 +58,6 @@ def get_weekly_dashboard_data():
             "risk_level": a.get("risk_level", "Medium")
         })
         
-    # 如果 DB 裡面是空的 (還沒跑過爬蟲)，就放一個預設的給 Demo 用
     if not alerts:
         alerts = [
             {"agency": "CDC", "type": "系統提示", "title": "尚無最新疫情警示資料，請至後端執行爬蟲更新。", "risk_level": "Low"},
@@ -70,16 +65,14 @@ def get_weekly_dashboard_data():
         ]
 
     # ==========================================
-    # 3. 產生智慧備貨建議 (Inventory + Gemini AI)
+    # 3. 產生智慧備貨建議
     # ==========================================
-    # 邏輯：找出庫存 < 30 的商品做補貨建議
     low_stock_cursor = db.inventory.find({
         "date": TARGET_DATE, 
         "store_id": STORE_ID,
         "closing_on_hand": {"$lt": 30}
     }).limit(2)
 
-    # 邏輯：找出庫存 > 100 的商品做促銷建議
     high_stock_cursor = db.inventory.find({
         "date": TARGET_DATE, 
         "store_id": STORE_ID,
@@ -88,10 +81,9 @@ def get_weekly_dashboard_data():
     
     suggestions = []
 
-    # 3.1 補貨建議 (Restock)
+    # 3.1 補貨建議
     restock_items = []
     for item in low_stock_cursor:
-        # 簡單的名稱映射，讓 Demo 更好看 (因為 CSV 只給了 SKU ID)
         sku_name = f"熱銷藥品 ({item['sku_id'][-3:]})"
         if "保健" in item['sku_id']: sku_name = f"綜合感冒藥 ({item['sku_id'][-3:]})"
         if "婦嬰" in item['sku_id']: sku_name = f"兒童退燒水 ({item['sku_id'][-3:]})"
@@ -100,15 +92,13 @@ def get_weekly_dashboard_data():
             "sku_id": item["sku_id"],
             "name": sku_name,
             "stock": item["closing_on_hand"],
-            "margin": 34.1, # 這裡可再優化：去 sales collection 算真實毛利
+            "margin": 34.1, 
             "sales_7d": 14,
             "status": "Critical"
         })
     
     if restock_items:
-        # 呼叫 Gemini 生成話術
         ai_talk = generate_talking_point("流感高峰", [x['name'] for x in restock_items], "庫存告急")
-        
         suggestions.append({
             "topic": "流感與呼吸道感染高峰",
             "action": "Restock",
@@ -118,7 +108,7 @@ def get_weekly_dashboard_data():
             "talking_points": ai_talk
         })
 
-    # 3.2 促銷建議 (Promotion)
+    # 3.2 促銷建議
     promo_items = []
     for item in high_stock_cursor:
          promo_items.append({
@@ -141,17 +131,21 @@ def get_weekly_dashboard_data():
         })
 
     # ==========================================
-    # 4. 輿情 (從 DB 撈取真實爬蟲資料)
+    # 4. 輿情 (配額制：各平台取最新 5 筆)
     # ==========================================
-    latest_articles = list(db.raw_articles.find().sort("crawled_at", -1).limit(5))
     insights = []
     
-    if latest_articles:
-        for art in latest_articles:
-            # 簡單的規則判斷 tag，未來可用 AI 分析內容
+    # 定義要抓取的來源與數量
+    target_sources = ["PTT", "Dcard", "GoogleNews"]
+    
+    for source in target_sources:
+        # 針對每個來源，依時間排序抓最新的 5 筆
+        cursor = db.raw_articles.find({"source": source}).sort("crawled_at", -1).limit(5)
+        
+        for art in cursor:
+            # 標籤邏輯
             tags = ["熱議"]
             title = art.get("title", "")
-            
             if "感冒" in title or "流感" in title: tags.append("流感")
             if "缺" in title: tags.append("缺貨")
             if "藥" in title: tags.append("用藥諮詢")
@@ -161,13 +155,16 @@ def get_weekly_dashboard_data():
                 "source": art.get("source", "Internet"),
                 "board": art.get("board", "General"),
                 "title": title,
-                "content": art.get("content", "")[:60] + "...", # 只取摘要
-                "url": art.get("url", "#"), # <--- 關鍵修正：加上 URL 欄位
+                "content": art.get("content", "")[:60] + "...", 
+                "url": art.get("url", "#"),
                 "intent": "Ask" if "?" in title else "Complain",
-                "tags": tags
+                "tags": tags,
+                # 雖然現在是分開抓，但加上時間欄位方便前端如果要統一排序
+                "crawled_at": art.get("crawled_at") 
             })
-    else:
-        # 若沒資料顯示預設
+
+    # 如果 DB 真的全空，才給 Mock Data
+    if not insights:
         insights = [
             {"source": "PTT", "board": "BabyMother", "title": "(範例) 小孩半夜發燒買不到藥怎麼辦？", "content": "跑了兩家藥局都說退燒藥缺貨...", "url": "#", "intent": "Out_of_Stock", "tags": ["缺貨", "兒童"]},
             {"source": "Dcard", "board": "Health", "title": "(範例) 最近流感是不是很強？", "content": "吞口水像刀割一樣...", "url": "#", "intent": "Ask", "tags": ["流感", "推薦"]}
